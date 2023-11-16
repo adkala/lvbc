@@ -43,7 +43,6 @@ def run_training_loop(config):
             with open(f'logs/{config["name"]}/{config["name"]}_e{e}.p', 'wb') as f:
                 pickle.dump((loss, ind_loss), f)
         pbar.set_description(f'Epoch Loss: {loss}')
-        break
 
 def main():
     parser = argparse.ArgumentParser()

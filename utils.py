@@ -84,8 +84,6 @@ def training_loop(config):
             
             if i % 10 == 0:
                 pbar.set_description(f"Loss: {loss}")
-            break
-        break
 
     loss = total_loss.sum() / total.sum()
     loss_ind = total_loss / total
