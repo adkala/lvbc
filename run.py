@@ -32,8 +32,10 @@ def make_config(config_file: str) -> dict:
 
 def run_training_loop(config):
     # create folders
-    os.makedirs(f'models/{config["name"]}')
-    os.mkdir(f'logs')
+    if not os.path.exists(f'models/{config["name"]}'):
+        os.makedirs(f'models/{config["name"]}')
+    if not os.path.exists('logs'):
+        os.makedirs('logs')
 
     loss_history = []
     ind_loss_history = []
