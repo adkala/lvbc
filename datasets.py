@@ -133,8 +133,13 @@ def make_lstm_collate_fn(config):
         x = torch.cat([torch.unsqueeze(
             torch.vstack([_x, torch.zeros((size - _x.shape[0], _x.shape[1]))])
         , dim=0) for _x in x]).transpose(0, 1)
-        y = nn.utils.rnn.pad_sequence(y)
-        m = torch.hstack([torch.unsqueeze(torch.hstack([_m, torch.ones(y.shape[0] - _m.shape[0])]), dim=-1) for _m in m])
+
+        #y = nn.utils.rnn.pad_sequence(y)
+        y = torch.cat([torch.unsqueeze(
+            torch.vstack([_y, torch.zeros((size - _y.shape[0], _y.shape[1]))])
+        , dim=0) for _y in y]).transpose(0, 1)
+
+        m = torch.hstack([torch.unsqueeze(torch.hstack([_m if config['use_mask'] else torch.ones(_m.shape), torch.zeros(size - _m.shape[0])]), dim=-1) for _m in m])
 
         return x, y, m
     return lstm_collate_fn

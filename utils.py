@@ -46,9 +46,6 @@ def training_loop(config):
         for i, (x, y, m) in enumerate(pbar):
             x, y, m = x.to(device), y.to(device), m.to(device)
 
-            if not config['use_mask']:
-                m = np.ones(m.shape)
-
             pos_len = 2 if config['no_z'] else 3
 
             if config['on_track'] and config['include_pos']:
@@ -70,7 +67,6 @@ def training_loop(config):
                 dif = torch.cumsum((y - y_pred) * tm, dim=0)
                 y_bar = y * tm
                 y_bar[:-1] += dif[1:]
-                #return y_bar, y, tm, y_pred
 
             loss, loss_ind = criterion(y_pred, y, m if config['use_mask'] else None) 
 
