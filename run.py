@@ -32,16 +32,21 @@ def make_config(config_file: str) -> dict:
 
 def run_training_loop(config):
     # create folders
-    os.makedirs(f'logs/{config["name"]}')
     os.makedirs(f'models/{config["name"]}')
+    os.mkdir(f'logs')
+
+    loss_history = []
+    ind_loss_history = []
 
     pbar = tqdm(range(config['epochs']), desc="Epoch Loss: N/A")
     for e in pbar:
         loss, ind_loss = utils.training_loop(config)
+        loss_history.append(loss)
+        ind_loss_history.append(ind_loss)
         if e % SAVE_ITER == 0:
             torch.save(config['model'], f'models/{config["name"]}/{config["name"]}_e{e}.p')
-            with open(f'logs/{config["name"]}/{config["name"]}_e{e}.p', 'wb') as f:
-                pickle.dump((loss, ind_loss), f)
+            with open(f'logs/{config["name"]}.log', 'wb') as f:
+                pickle.dump((loss_history, ind_loss_history), f)
         pbar.set_description(f'Epoch Loss: {loss}')
 
 def main():

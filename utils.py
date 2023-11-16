@@ -42,7 +42,7 @@ def training_loop(config):
 
         print(f'running {datasets[i].name}')
 
-        pbar = tqdm(DataLoader(datasets[i], batch_size=config['batch_size'], shuffle=True, collate_fn=datasets_utils.lstm_collate_fn), desc="Loss: N/A", leave=False)
+        pbar = tqdm(DataLoader(datasets[i], batch_size=config['batch_size'], shuffle=True, collate_fn=datasets_utils.make_lstm_collate_fn(config)), desc="Loss: N/A", leave=False)
         for i, (x, y, m) in enumerate(pbar):
             x, y, m = x.to(device), y.to(device), m.to(device)
 

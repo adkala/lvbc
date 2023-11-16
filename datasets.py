@@ -124,15 +124,17 @@ def set_global_normalization_factors(datasets):
     for d in datasets:
         d.set_normalization_factors(u_m, u_s)
 
-def lstm_collate_fn(batch): # batch in form L, x, want l, h, x
-    x, y, m = zip(*batch)
+def make_lstm_collate_fn(config):
+    def lstm_collate_fn(batch): # batch in form L, x, want l, h, x
+        x, y, m = zip(*batch)
 
-    size = max([_m.shape[0] for _m in m])
+        size = config['window'] + config['horizon']
 
-    x = torch.cat([torch.unsqueeze(
-        torch.vstack([_x, torch.zeros((size - _x.shape[0], _x.shape[1]))])
-    , dim=0) for _x in x]).transpose(0, 1)
-    y = nn.utils.rnn.pad_sequence(y)
-    m = torch.hstack([torch.unsqueeze(torch.hstack([_m, torch.ones(y.shape[0] - _m.shape[0])]), dim=-1) for _m in m])
+        x = torch.cat([torch.unsqueeze(
+            torch.vstack([_x, torch.zeros((size - _x.shape[0], _x.shape[1]))])
+        , dim=0) for _x in x]).transpose(0, 1)
+        y = nn.utils.rnn.pad_sequence(y)
+        m = torch.hstack([torch.unsqueeze(torch.hstack([_m, torch.ones(y.shape[0] - _m.shape[0])]), dim=-1) for _m in m])
 
-    return x, y, m
+        return x, y, m
+    return lstm_collate_fn
