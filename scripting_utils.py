@@ -79,14 +79,13 @@ def make_config(
             datasets = []
             for ds in unpickled:
                 datasets.append(LSTMDataset(ds, window=window, horizon=horizon, delta_p=delta_p, include_pos=include_pos, include_r=include_r, no_z=no_z, zero_position=zero_position, mask_window=mask_window))
-
-            if normalize:
-                set_global_normalization_factors(datasets)
             
             return datasets
 
         train_datasets = get_datasets(train_path) 
         test_datasets = get_datasets(test_path)
+        if normalize:
+            set_global_normalization_factors(train_datasets + test_datasets)
 
         return {
             'train_datasets': train_datasets,
