@@ -19,8 +19,8 @@ use_mask: True
 train_path: data/test0_filtered
 test_path: data/test0_filtered
 
-window: 100
-horizon: 100
+window: 50
+horizon: 50
 
 normalize: True
 delta_p: True

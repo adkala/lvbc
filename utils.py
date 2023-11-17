@@ -64,11 +64,9 @@ def training_loop(config):
 
             if config['on_track'] and config['delta_p']:
                 tm = m.bool().unsqueeze(-1).expand(-1, -1, y.shape[-1])
-                dif = torch.cumsum((y - y_pred) * tm, dim=0)
-                y_bar = y * tm
-                y_bar[:-1] += dif[1:]
+                y = get_corrected_y_for_delta_p(y, y_pred, tm)
 
-            loss, loss_ind = criterion(y_pred, y, m if config['use_mask'] else None) 
+            loss, loss_ind = criterion(y_pred, y, m) 
 
             optimizer.zero_grad()
             loss.backward()
@@ -87,3 +85,9 @@ def training_loop(config):
     loss_ind[loss_ind != loss_ind] = 0 # catching nan due to 0 / 0
 
     return loss, loss_ind
+
+def get_corrected_y_for_delta_p(y, y_pred, m):
+    dif = (y - y_pred).cumsum(axis=0)
+    y[1:] += dif[:-1]
+    y *= m
+    return y
