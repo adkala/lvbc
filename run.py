@@ -14,7 +14,8 @@ def make_config(config_file: str) -> dict:
     with open(config_file, "r") as f:
         config_kwargs |= yaml.load(f, Loader=yaml.SafeLoader)
 
-    config = scripting_utils.make_config(**config_kwargs)
+    config = scripting_utils.get_make_model_config(config_kwargs['model'])(**config_kwargs)
+    config.update(scripting_utils.get_make_dataset_config(config_kwargs['dataset'])(**config_kwargs))
 
     config['name'] = os.path.splitext(os.path.basename(config_file))[0] + '_' + time.strftime('%d-%m-%Y_%H-%M-%S')
 
@@ -24,6 +25,8 @@ def make_config(config_file: str) -> dict:
     else:
         config['device'] = torch.device('cpu')
         print(f'using cpu')
+
+    config['model'].to(config['device'])
 
     return config
 
@@ -37,7 +40,7 @@ def run_training_loop(config, load_model=None):
         ind_loss_history = []
         epochs = 0
     else:
-        torch_dict = torch.load(load_model)
+        torch_dict = torch.load(load_model, map_location=torch.device('cpu'))
 
         config['model'].load_state_dict(torch_dict['model_state_dict'])
         config['optimizer'].load_state_dict(torch_dict['optimizer_state_dict'])
@@ -50,7 +53,8 @@ def run_training_loop(config, load_model=None):
 
     for e in range(epochs + 1, config['epochs'] + epochs + 1):
         print(f'Starting epoch {e} / {epochs + config["epochs"]}')
-        loss, ind_loss = utils.training_loop(config)
+        #loss, ind_loss = utils.lstm_training_loop(config)
+        loss, ind_loss = utils.encdec_training_loop(config)
         loss_history.append(loss)
         ind_loss_history.append(ind_loss)
         if e % SAVE_ITER == 0:

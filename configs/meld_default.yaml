@@ -1,0 +1,16 @@
+model: mlpenclstmdec
+dataset: encdecdataset
+
+# training parameters
+epochs: 10000
+batch_size: 512
+optimizer: adamw
+learning_rate: 1.e-3
+loss_function: mate
+
+# dataset parameters
+train_path: data/test0_filtered
+test_path: data/test0_filtered
+
+window: 100
+horizon: 100
