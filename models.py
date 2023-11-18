@@ -89,8 +89,8 @@ class MLPEncLSTMDec(nn.Module):
         u = self.mlp2(u)
         u = self.dropout2(u)
 
-        c, h = torch.vstack([torch.unsqueeze(self.hidden_state, dim=0)] * x.shape[0]).transpose(0, 1), torch.vstack([torch.unsqueeze(x, dim=0)] * self.lstm_num_layers)
-        x, (c, h) = self.lstm1(u, (c, h))
-        x, c, h = self.dropout3(x), self.dropout3(c), self.dropout3(h)
+        h, c = torch.vstack([torch.unsqueeze(self.hidden_state, dim=0).contiguous()] * x.shape[0]).transpose(0, 1), torch.vstack([torch.unsqueeze(x, dim=0)] * self.lstm_num_layers)
+        x, (h, c) = self.lstm1(u, (h, c))
+        x, h, c = self.dropout3(x), self.dropout3(h), self.dropout3(c)
         
         return self.mlp3(x)
