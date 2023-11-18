@@ -177,7 +177,7 @@ class EncDecDataset(LSTMDataset):
         x = np.hstack([x_p, np.expand_dims(x_th, 1)]).flatten()
         u = np.hstack([u, np.expand_dims(u_th, 1)])
 
-        return torch.from_numpy(x).double(), torch.from_numpy(u).double(), torch.from_numpy(y).double()
+        return torch.from_numpy(x).float(), torch.from_numpy(u).float(), torch.from_numpy(y).float()
         
     def __len__(self):
         return self.p.shape[0] - self.window - self.horizon # temp while no collate fn
