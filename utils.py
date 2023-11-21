@@ -6,8 +6,10 @@ import numpy as np
 import torch
 import datasets as datasets_utils
 
-def cont_training_loop(model, optimizer, criterion, datasets, device, batch_size=256, compensate_error=False):
+def cont_training_loop(model, optimizer, criterion, datasets, device, batch_size=256, comp_error=False):
     model = model.to(device)
+    total_loss = 0
+    total = 0
     for j in range(len(datasets)):
         print(f'loading {datasets[j].name}')
         for i, (x, y) in enumerate((pbar := tqdm(DataLoader(datasets[j], batch_size=batch_size, shuffle=True), desc="Loss: N/A", leave=False))):
@@ -15,7 +17,7 @@ def cont_training_loop(model, optimizer, criterion, datasets, device, batch_size
             
             y_pred = model(x)
             
-            if compensate_error:
+            if comp_error:
                 y = compensate_error(y_pred.detach().numpy(), y) # does not backprop through compensated vectors
                 
             loss = criterion(y_pred, y) 
@@ -23,9 +25,15 @@ def cont_training_loop(model, optimizer, criterion, datasets, device, batch_size
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+
+            total_loss += loss.item()
+            total += 1
             
             if i % 10 == 0:
-                pbar.set_description(f"Loss: {loss}")
+                pbar.set_description(f"Loss: {loss.item()}")
+    return total_loss / total
+
+            
     
 def compensate_error(y_pred, y):
     dif = (y - y_pred).cumsum(axis=0)

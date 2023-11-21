@@ -66,7 +66,7 @@ def make_horizonlstm_config(
     elif compensate_error:
         raise NotImplementedError
     
-    training_loop = lambda datasets: utils.cont_training_loop(model, optimizer, criterion, datasets, device, batch_size=batch_size, compensate_error=compensate_error)
+    training_loop = lambda datasets: utils.cont_training_loop(model, optimizer, criterion, datasets, device, batch_size=batch_size, comp_error=compensate_error)
     
     return {
         'epochs': epochs,
