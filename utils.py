@@ -18,7 +18,7 @@ def cont_training_loop(model, optimizer, criterion, datasets, device, batch_size
             y_pred = model(x)
             
             if comp_error:
-                y = compensate_error(y_pred.detach().numpy(), y) # does not backprop through compensated vectors
+                y = compensate_error(y_pred.detach(), y) # does not backprop through compensated vectors
                 
             loss = criterion(y_pred, y) 
 
@@ -36,6 +36,10 @@ def cont_training_loop(model, optimizer, criterion, datasets, device, batch_size
             
     
 def compensate_error(y_pred, y):
-    dif = (y - y_pred).cumsum(axis=0)
-    return np.vstack([y[0], y[1:] + dif[:-1]])
+    if isinstance(y_pred, torch.Tensor) or isinstance(y, torch.Tensor):
+        dif = (y - y_pred).cumsum(dim=-2)
+        return torch.vstack([torch.unsqueeze(y[0], dim=0), y[1:] + dif[:-1]])
+    else:
+        dif = (y - y_pred).cumsum(dim=-2)
+        return np.vstack([y[0], y[1:] + dif[:-1]])
     

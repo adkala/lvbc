@@ -10,7 +10,7 @@ class HorizonLSTM(nn.Module): # window and horizon treated same
             nn.ReLU(),
             nn.Linear(int(hidden_size / 2), hidden_size)
         )
-        self.lstm = nn.LSTM(num_layers=num_layers, input_size=hidden_size, hidden_size=hidden_size)
+        self.lstm = nn.LSTM(num_layers=num_layers, input_size=hidden_size, hidden_size=hidden_size, batch_first=True)
         self.outputl = nn.Sequential(
             nn.Linear(hidden_size, int(hidden_size / 2)),
             nn.ReLU(),

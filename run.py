@@ -8,7 +8,7 @@ import torch
 import time
 
 def make_config(config_file: str) -> dict:
-    config_kwargs = {}
+    config_kwargs = {'save_iter': 200}
     with open(config_file, "r") as f:
         config_kwargs |= yaml.load(f, Loader=yaml.SafeLoader)
 
