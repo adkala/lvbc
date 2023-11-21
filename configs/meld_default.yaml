@@ -14,3 +14,5 @@ test_path: data/test0_filtered
 
 window: 100
 horizon: 100
+
+delta_p: False

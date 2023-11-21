@@ -13,221 +13,123 @@ class BaseDataset(Dataset):
             end = len(bag['t'])
         
         self.name = bag['name']
-        self.r = bag['r'][start:end]
-        self.v = bag['v'][start:end] # values come from position difference (with processing)
+        
         self.p = bag['p'][start:end]
+        self.v = bag['v'][start:end] # replace with wheel speed
         self.u = bag['u'][start:end]
+        self.r = bag['r'][start:end]
 
     def __len__(self):
         return len(self.r)
     
     def __getitem__(self, i):
-        return self.r[i], self.v[i], self.p[i], self.u[i]
+        return self.p[i], self.v[i], self.u[i], self.r[i], 
 
-class LSTMDataset(BaseDataset):
-    def __init__(self, bag, start=0, end=None, window=100, horizon=100, rotate_acceleration=True, standardize_self=False, delta_p = True, include_pos=True, include_r=True, no_z=True, zero_position=False, mask_window=True, use_mask=True): # 5 sec window, 5 sec horizon
-        super().__init__(bag, start=start, end=end)
+class ContDataset(BaseDataset):
+    def __init__(self, bag, window=1, horizon=100, delta_p=True, theta=True, fill_holes=True): # single step window, 5 sec horizon
+        super().__init__(bag)
 
-        self.r = np.array(self.r)
         self.p = np.array(self.p)
+        self.v = np.array(self.v)
         self.u = np.array(self.u)
+        self.r = np.array(self.r)
 
-        if rotate_acceleration: # rotating acceleration here since always known
-            self.u[:, :3] = np.vstack([self.r[i] @ self.u[i, :3] for i in range(self.u.shape[0])])
-
-        self.window = window # used as 'precursor'
+        self.window = window
         self.horizon = horizon
+        self.delta_p = delta_p
+        self.theta = theta
 
-        # standardization
+        # standardize_u_and_v
         self.u_mean, self.u_std = None, None
-        self.u_mean_no_z, self.u_std_no_z = None, None
-
-        # normalization
+        self.v_mean, self.v_std = None, None
+        self.standardize_warning = True
+        # normalize_u
         self.p_min, self.p_r = None, None
-
-        self.set_getitem_params(delta_p, include_pos, include_r, no_z, zero_position, mask_window)
-
-        if standardize_self:
-            self.standardize_self()
+        self.normalize_warning = True
+        
+        if fill_holes:
+            self.p = self._fill_holes(self.p)
 
     def __len__(self):
-        return self.r.shape[0] - self.window - 1
+        return self.r.shape[0] - self.window - self.horizon
 
     def __getitem__(self, i):
-        '''
-        Options explanation \n
-        - delta_p: set output to delta_p (default True)
-        - include_pos: include_pos in x vector (default True)
-        - include_r: include r in x vector (default True)
-        - no_z: include z in vectors (default True)
-        - mask_window: mask window during training (default True)
-        - zero_position: set first position in seq to be the seq's origin (default False, only valid if include_pos])
-        '''
-        # set params
-        delta_p, include_pos, zero_position, include_r, no_z, mask_window, use_mask = self.delta_p, self.include_pos, self.zero_position, self.include_r, self.no_z, self.mask_window, self.use_mask
+        j = i + self.window + self.horizon
+        v, u, r = np.copy(self.v[i:j-1]), np.copy(self.u[i:j-1]), np.copy(self.r[i:j-1])
+        p_x, p_y = np.copy(self.p[i:j-1]), np.copy(self.p[i+1:j])
 
-        j = i + self.window + self.horizon 
-
-        r, p, u = np.copy(self.r[i:j]), np.copy(self.p[i:j]), np.copy(self.u[i:j])
-
-        if no_z:
-            u = np.hstack([u[:, :2], u[:, 3:]])
-            r = r[:, :-1, :-1]
-            p = p[:, :-1]
-            
-
-        if self.u_mean is None:
-            print('Normalization factors not set. Continuing with unnormalized values.')
+        if self.u_mean is None and self.standardize_warning:
+            print('Standardization factors for u and v are not set. Continuing with unstandardized values.')
+            self.standardize_warning = False
         else: 
-            if no_z:
-                u = (u - self.u_mean_no_z) / self.u_std_no_z
-            else:
-                u = (u - self.u_mean) / self.u_std
+            u = (u - self.u_mean) / self.u_std
 
-        dp = np.copy(p)
-        dp[1:] -= dp[:-1] # delta p
-        dp[0, :] = 0
+        if self.p_min is None and self.normalize_warning:
+            print('Normalization values for p are not set. Continuing with unnormalized values.')
+            self.normalize_warning = False
+        else:
+            p_x = (p_x - self.p_min) / self.p_r
+            p_y = (p_y - self.p_min) / self.p_r
 
-        if zero_position:
-            p -= p[0]
 
-        x = np.hstack([u, 
-                       r.reshape(r.shape[0], -1) if include_r else np.empty((u.shape[0], 0)), 
-                       p if include_pos else np.empty((u.shape[0], 0))
-                       ])
-        y = dp if delta_p else p
+        pxx = p_x
+        pyy = np.copy(p_y)
+        if self.delta_p:
+            p_y[1:] -= p_y[:-1] # delta p
+            p_y[0] -= p_x[0]
+            
+        if self.theta:
+            r = np.expand_dims(R.from_matrix(r).as_euler("zyx")[:, 0], axis=-1)
 
-        mask = np.sum(dp, axis=-1) != 0 # index to include 
-        mask[:self.window] = 0 if mask_window else 1
+        return np.hstack([p_x, v, u, r]), p_y
 
-        if not use_mask:
-            mask = np.ones(mask.shape)
+    def set_u_and_v_standardization_factors(self, u_mean, u_std, v_mean, v_std):
+        self.u_mean, self.u_std, self.v_mean, self.v_std = u_mean, u_std, v_mean, v_std
 
-        return torch.from_numpy(x).float(), torch.from_numpy(y).float(), torch.from_numpy(mask).bool()
+    def get_u_and_v_standardization_factors(self):
+        u_mean, u_std = np.mean(self.u, axis=0), np.std(self.u, axis=0)
+        v_mean, v_std = np.mean(self.v, axis=0), np.std(self.v, axis=0)
+        return u_mean, u_std, v_mean, v_std, self.p.shape[0]
 
-    def set_getitem_params(self, delta_p = True, include_pos=True, include_r=True, no_z=True, zero_position=False, mask_window=True):
-        self.delta_p, self.include_pos, self.include_r, self.no_z, self.zero_position, self.mask_window= delta_p, include_pos, include_r, no_z, zero_position, mask_window
-
-    def set_standardization_factors(self, u_mean, u_std):
-        self.u_mean, self.u_std = u_mean, u_std
-        self.u_mean_no_z = np.hstack([u_mean[:2], u_mean[3:]])
-        self.u_std_no_z = np.hstack([u_std[:2], u_std[3:]])
-
-    def get_standardization_factors(self):
-        return np.mean(self.u, axis=0), np.std(self.u, axis=0), self.u.shape[0]
-    
-    def standardization_self(self):
-        self.set_standardization_factors(*self.get_standardization_factors()[:-1])
-
-    def get_normalization_factors(self):
-        return np.min(self.p, axis=0), np.max(self.p, axis=0)
-
-    def set_normalization_factors(self, p_min, p_r):
+    def set_p_normalization_factors(self, p_min, p_r):
         self.p_min, self.p_r =  p_min, p_r
 
-    def create_th(self, one=True):
-        th = []
-        for i in range(self.r.shape[0]):
-            r = R.from_matrix(self.r[i])
-            th.append(r.as_euler('zyx')[0] / (np.pi if one else 1))
-        self.th = np.array(th)
-        return self.th
-
-    def fill_p_holes(self):
-        for i in range(1, self.p.shape[0] - 1):
-            if np.all(np.isclose(self.p[i - 1], self.p[i])):
-                self.p[i] = (self.p[i - 1] + self.p[i + 1]) / 2
+    def get_p_normalization_factors(self):
+        return np.min(self.p, axis=0), np.max(self.p, axis=0) - np.min(self.p, axis=0)
+    
+    def _fill_holes(self, p):
+        for i in range(1, p.shape[0] - 1):
+            if np.all(np.isclose(p[i - 1], p[i])):
+                p[i] = (p[i - 1] + p[i + 1]) / 2
         
-        if np.isclose(self.p[-1], self.p[-2]).all():
-            self.p[-1] = self.p[-2] - self.p[-3] + self.p[-1]
-
-
-class EncDecDataset(LSTMDataset):
-    def __init__(self, bag, start=0, end=None, create_th=True, fill_p_holes=True):
-        super().__init__(bag, start=0, end=None)
-
-        if create_th:
-            self.create_th()
-        if fill_p_holes:
-            self.fill_p_holes()
-
-    def __getitem__(self, i):
-        x_p = self.p[i: i+self.window]
-        x_th = self.th[i: i+self.window]
-        u = self.u[i+self.window: i+self.window+self.horizon]
-        u_th = self.th[i+self.window: i+self.window+self.horizon]
-        y = self.p[i+self.window: i+self.window+self.horizon]
+        if np.isclose(p[-1], p[-2]).all():
+            p[-1] = p[-2] - p[-3] + p[-1]
         
-        # normalization
-        x_p -= self.p_min
-        x_p /= self.p_r
-        y -= self.p_min
-        y /= self.p_r
+        return p
 
-        # standardization
-        u -= self.u_mean
-        u /= self.u_std
-
-        # delta p
-        dy = np.copy(y)
-        dy[1:] -= dy[:-1] # delta p
-        dy[0, :] = 0
-        y = dy
-
-        x = np.hstack([x_p, np.expand_dims(x_th, 1)]).flatten()
-        u = np.hstack([u, np.expand_dims(u_th, 1)])
-
-        return torch.from_numpy(x).float(), torch.from_numpy(u).float(), torch.from_numpy(y).float()
-        
-    def __len__(self):
-        return self.p.shape[0] - self.window - self.horizon # temp while no collate fn
-
-
-def set_global_normalization_factors(datasets):
-    v = np.vstack([np.expand_dims(np.array(dataset.get_normalization_factors()), 0) for dataset in datasets])
+def set_global_p_normalization_factors(datasets):
+    v = np.vstack([np.expand_dims(np.array(dataset.get_p_normalization_factors()), 0) for dataset in datasets])
     mi = np.min(v[:, 0], axis=0)
     ma = np.max(v[:, 1], axis=0)
 
     for dataset in datasets:
-        dataset.set_normalization_factors(mi, ma - mi)
+        dataset.set_p_normalization_factors(mi, ma - mi)
     
     return mi, ma - mi
 
-def set_global_standardization_factors(datasets):
-    u_m, u_v, t = 0, 0, 0
+def set_global_u_and_v_standardization_factors(datasets):
+    u_m, u_v, v_m, v_v, t = 0, 0, 0, 0, 0
     for d in datasets:
-        _u_m, _u_s, _t = d.get_standardization_factors()
+        _u_m, _u_s, _v_m, _v_v, _t = d.get_u_and_v_standardization_factors()
         u_m += _u_m * _t
         u_v += _u_s ** 2 * _t
+        v_m += _v_m * _t
+        v_v += _v_v ** 2 * _t
         t += _t
     u_m /= t
     u_s = np.sqrt(u_v / t)
+    v_m /= t
+    v_s = np.sqrt(v_v / t)
     for d in datasets:
-        d.set_standardization_factors(u_m, u_s)
+        d.set_u_and_v_standardization_factors(u_m, u_s, v_m, v_v)
     return u_m, u_s
-
-
-def make_lstm_collate_fn(config):
-    def lstm_collate_fn(batch): # batch in form L, x, want l, h, x
-        x, y, m = zip(*batch)
-
-        size = config['window'] + config['horizon']
-
-        x = torch.cat([torch.unsqueeze(
-            torch.vstack([_x, torch.zeros((size - _x.shape[0], _x.shape[1]))])
-        , dim=0) for _x in x]).transpose(0, 1)
-
-        #y = nn.utils.rnn.pad_sequence(y)
-        y = torch.cat([torch.unsqueeze(
-            torch.vstack([_y, torch.zeros((size - _y.shape[0], _y.shape[1]))])
-        , dim=0) for _y in y]).transpose(0, 1)
-
-        m = torch.hstack([torch.unsqueeze(torch.hstack([_m if config['use_mask'] else torch.ones(_m.shape), torch.zeros(size - _m.shape[0])]), dim=-1) for _m in m])
-
-        return x, y, m
-    return lstm_collate_fn
-
-def encdec_collate_fn(batch):
-    x, u, y = zip(*batch)
-    x = nn.utils.rnn.pad_sequence(x)
-    y = nn.utils.rnn.pad_sequence(y)

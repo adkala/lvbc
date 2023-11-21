@@ -1,31 +1,24 @@
 model: horizonlstm
-dataset: lstmdataset
+dataset: contdataset
 
 # training parameters
-epochs: 400
-batch_size: 512
+epochs: 10000
+batch_size: 256
 optimizer: adamw
-learning_rate: 1.e-2
-loss_function: mate
+learning_rate: 1.e-5
+loss_function: mse
 
 num_layers: 4
-input_size: 9
-hidden_size: 6
-
-on_track: True
-use_mask: True
+hidden_size: 200
 
 # dataset parameters
-train_path: data/test0_filtered
-test_path: data/test0_filtered
+train_path: data/test0
+validation_path: data/test0
 
-window: 50
-horizon: 50
+window: 1
+horizon: 100
 
-normalize: True
 delta_p: True
-include_pos: False
-include_r: True
-no_z: True
-zero_position: False
-mask_window: True
+compensate_error: False
+
+save_iter: 200
