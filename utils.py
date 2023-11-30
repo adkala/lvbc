@@ -40,6 +40,6 @@ def compensate_error(y_pred, y):
         dif = (y - y_pred).cumsum(dim=-2)
         return torch.vstack([torch.unsqueeze(y[0], dim=0), y[1:] + dif[:-1]])
     else:
-        dif = (y - y_pred).cumsum(dim=-2)
+        dif = (y - y_pred).cumsum(axis=-2)
         return np.vstack([y[0], y[1:] + dif[:-1]])
     

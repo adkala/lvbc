@@ -88,7 +88,7 @@ def make_contdataset_config(
         datasets = []
         for fp in files:
             with open(fp, 'rb') as f:
-                datasets.append(datasets_utils.ContDataset(pickle.load(f)))
+                datasets.append(datasets_utils.ContDataset(pickle.load(f), window=window, horizon=horizon, delta_p=delta_p))
         return datasets
 
     train_datasets = get_datasets(train_path)
