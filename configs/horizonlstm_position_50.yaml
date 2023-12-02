@@ -1,0 +1,21 @@
+model: horizonlstm
+dataset: contdataset
+
+# training parameters
+epochs: 10000
+batch_size: 256
+optimizer: adamw
+learning_rate: 1.e-5
+loss_function: mse
+
+num_layers: 4
+hidden_size: 200
+
+# dataset parameters
+train_path: data/putnam
+validation_path: data/putnam
+
+window: 51
+horizon: 50
+
+delta_p: False
