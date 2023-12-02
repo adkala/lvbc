@@ -41,6 +41,15 @@ def make_horizonlstm_config(
     # model
     model = models.HorizonLSTM(num_layers=num_layers, input_size=input_size, hidden_size=hidden_size, output_size=output_size)
 
+    # device
+    if device == 'default':
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    else:
+        device = torch.device(device)
+    print(f'using {device}')
+
+    model.to(device)
+
     # optimizer
     if optimizer == 'adamw':
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
@@ -52,13 +61,6 @@ def make_horizonlstm_config(
         criterion = nn.MSELoss()
     else:
         raise ValueError
-
-    # device
-    if device == 'default':
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    else:
-        device = torch.device(device)
-    print(f'using {device}')
     
     # compensate_error check
     if compensate_error and not delta_p:
@@ -72,7 +74,8 @@ def make_horizonlstm_config(
         'epochs': epochs,
         'model': model,
         'optimizer': optimizer,
-        'training_loop': training_loop
+        'training_loop': training_loop,
+        'device': device
     }
         
 def make_contdataset_config(

@@ -37,7 +37,7 @@ def run_training_loop(config, load_model=None):
         loss_history = []
         epochs = 0
     else:
-        torch_dict = torch.load(load_model, map_location=torch.device('cpu'))
+        torch_dict = torch.load(load_model, map_location=config['device'])
 
         config['model'].load_state_dict(torch_dict['model_state_dict'])
         config['optimizer'].load_state_dict(torch_dict['optimizer_state_dict'])
@@ -47,8 +47,8 @@ def run_training_loop(config, load_model=None):
 
         config['name'] = torch_dict['name']
 
-    for e in range(epochs + 1, config['epochs'] + epochs + 1):
-        print(f'Starting epoch {e} / {epochs + config["epochs"]}')
+    for e in range(epochs + 1, config['epochs']):
+        print(f'Starting epoch {e} / {config["epochs"]}')
         loss = config['training_loop'](config['train_datasets'])
         loss_history.append(loss)
         if e % config['save_iter'] == 0:
