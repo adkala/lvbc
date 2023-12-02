@@ -5,18 +5,23 @@ dataset: contdataset
 epochs: 10000
 batch_size: 256
 optimizer: adamw
-learning_rate: 1.e-3
+learning_rate: 1.e-5
 loss_function: mse
 
 num_layers: 4
 hidden_size: 200
 
 # dataset parameters
-train_path: data/putnam
-validation_path: data/putnam
+train_path: data/test0
+validation_path: data/test0
 
 window: 1
 horizon: 100
 
-delta_p: True
-compensate_error: True
+delta_p: False
+compensate_error: False
+
+standardize_u: True
+normalize_p: False
+
+save_iter: 200

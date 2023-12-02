@@ -81,6 +81,8 @@ def make_contdataset_config(
     window: int = 1,
     horizon: int = 100,
     delta_p: bool = True,
+    normalize_p: bool = True,
+    standardize_u: bool = True,
     **kwargs
 ):
     def get_datasets(path):
@@ -94,8 +96,10 @@ def make_contdataset_config(
     train_datasets = get_datasets(train_path)
     validation_datasets = get_datasets(validation_path)
 
-    datasets_utils.set_global_p_normalization_factors(train_datasets + validation_datasets)
-    datasets_utils.set_global_u_and_v_standardization_factors(train_datasets + validation_datasets)
+    if normalize_p:
+        datasets_utils.set_global_p_normalization_factors(train_datasets + validation_datasets)
+    if standardize_u:
+        datasets_utils.set_global_u_and_v_standardization_factors(train_datasets + validation_datasets)
 
     return {
         'train_datasets': train_datasets,
@@ -103,5 +107,7 @@ def make_contdataset_config(
         'window': window,
         'horizon': horizon,
         'delta_p': delta_p,
+        'normalize_p': normalize_p,
+        'standardize_u': standardize_u
     }
     

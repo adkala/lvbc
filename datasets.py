@@ -61,16 +61,15 @@ class ContDataset(BaseDataset):
         if self.u_mean is None and self.standardize_warning:
             print('Standardization factors for u and v are not set. Continuing with unstandardized values.')
             self.standardize_warning = False
-        else: 
+        elif self.u_mean is not None: 
             u = (u - self.u_mean) / self.u_std
 
         if self.p_min is None and self.normalize_warning:
             print('Normalization values for p are not set. Continuing with unnormalized values.')
             self.normalize_warning = False
-        else:
+        elif self.p_min is not None:
             p_x = (p_x - self.p_min) / self.p_r
             p_y = (p_y - self.p_min) / self.p_r
-
 
         pxx = p_x
         pyy = np.copy(p_y)
@@ -106,6 +105,48 @@ class ContDataset(BaseDataset):
             p[-1] = p[-2] - p[-3] + p[-1]
         
         return p
+
+class DiscDataset(ContDataset):
+    def __init__(self, bag, os_dim_size=1000, p_unit_size = 0.25, v_max=24, u_max=12, horizon=100): # window = 1 only supported
+        super().__init__(bag, window=1, horizon=horizon, delta_p=False)
+        
+        self.os_dim_size = os_dim_size
+        self.p_unit_size = p_unit_size
+        self.v_max = v_max
+        self.u_max = u_max
+
+        # disable normalize warning
+        self.normalize_warning = False
+
+        # values
+        self.p = self.p[:, :2]
+        self.v = self.v[:, :2]
+        self.u = self.u[:, :2]
+        self.r = np.expand_dims(R.from_matrix(self.r).as_euler("zyx")[:, 0], axis=-1)
+
+        # norm
+        self.min, self.max = None, None
+    
+    def __getitem__(self, i):
+        j = i + self.window + self.horizon
+        p, v, u, r = np.copy(self.p[i:j]), np.copy(self.v[i:j]), np.copy(self.u[i:j]), np.copy(self.r[i:j])
+
+        p0 = np.copy(p[0])
+        p -= p0
+        
+        discretize = lambda x, step: np.clip(np.abs(x) // step * np.where(x < 0, -1, 1) + np.where(x < 0, -1, 0), -self.os_dim_size, self.os_dim_size - 1) + self.os_dim_size # uniform buckets
+        
+        p = discretize(p, self.p_unit_size)
+        v = discretize(v, (self.v_max / self.os_dim_size))
+        u = discretize(u, (self.u_max / self.os_dim_size))
+        r = discretize(r, (np.pi / self.os_dim_size))
+
+        p[0] = (self.p[i] - self.p_min / self.p_r) // (self.os_dim_size * 2) #context
+
+        #return p, self.p[i:j] - p0
+        return np.hstack([p, v, u, r]) # single output for teacher forcing 
+        
+        
 
 def set_global_p_normalization_factors(datasets):
     v = np.vstack([np.expand_dims(np.array(dataset.get_p_normalization_factors()), 0) for dataset in datasets])
