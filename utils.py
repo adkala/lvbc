@@ -7,7 +7,6 @@ import torch
 import datasets as datasets_utils
 
 def cont_training_loop(model, optimizer, criterion, datasets, device, batch_size=256, comp_error=False):
-    model = model.to(device)
     total_loss = 0
     total = 0
     for j in range(len(datasets)):
