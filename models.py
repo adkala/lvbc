@@ -22,3 +22,19 @@ class HorizonLSTM(nn.Module): # window and horizon treated same
         x, _ = self.lstm(x)
         x = self.outputl(x)
         return x
+
+    def generate(self, x, u):
+        x = self.inputl(x)
+        x, (c, h) = self.lstm(x)
+        x = self.outputl(x)
+
+        y = [x[-1]]
+        for i in range(u.shape[0]):
+            x = torch.hstack([y[-1], u[i]]).unsqueeze(0)
+            x = self.inputl(x)
+            x, (c, h) = self.lstm(x, (c, h))
+            x = self.outputl(x)
+            y.append(x[-1])
+        return torch.vstack(y)
+            
+        
