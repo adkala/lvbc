@@ -16,7 +16,7 @@ def make_config(config_file: str) -> dict:
     sample_point = config['train_datasets'][0][0] # for shape matching
     config.update(scripting_utils.get_make_model_config(config_kwargs['model'])(
         input_size=sample_point[0].shape[-1], 
-        output_size=sample_point[1].shape[-1],
+        output_size=sample_point[1].shape[-1] * (2 if config_kwargs['loss_function'] == 'gaussian' else 1), # heteroscedastic
         **config_kwargs))
     
     config['name'] = os.path.splitext(

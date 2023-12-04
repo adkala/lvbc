@@ -59,9 +59,12 @@ def make_horizonlstm_config(
     # loss_function
     if loss_function == 'mse':
         criterion = nn.MSELoss()
+    elif loss_function == 'gaussian':
+        gnl = nn.GaussianNLLLoss()
+        criterion = lambda y_pred, y: gnl(y_pred[:, :, :y.shape[-1]], y, nn.functional.relu(y_pred[:, :, y.shape[-1]:])) # pred, target, var (relu to keep +)
     else:
         raise ValueError
-    
+   
     # compensate_error check
     if compensate_error and not delta_p:
         raise ValueError('compensate_error cannot be True when delta_p is False')
