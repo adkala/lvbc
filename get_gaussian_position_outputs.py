@@ -5,17 +5,21 @@ import argparse
 import models
 import torch
 import utils
+import os
 
 BATCH_SIZE = 256
 
 
 def run_training_loop(config, load_model):
+    if not os.path.exists(f'models/{config["name"]}'):
+        os.makedirs(f'models/{config["name"]}')
+
+    loss_history = []
+    epochs = 0
+
     torch_dict = torch.load(load_model, map_location=config["device"])
 
     config["model"].load_state_dict(torch_dict["model_state_dict"], strict=False)
-
-    loss_history = torch_dict["train_loss_history"]
-    epochs = torch_dict["epoch"]
 
     for e in range(epochs + 1, config["epochs"]):
         print(f'Starting epoch {e} / {config["epochs"]}')
@@ -66,7 +70,7 @@ def main():
     criterion = lambda y_pred, y: gnl(
         y_pred[:, :, : y.shape[-1]],
         y,
-        nn.functional.relu(y_pred[:, :, y.shape[-1] :]),
+        y_pred[:, :, y.shape[-1] :],
     )  # pred, target, var (relu to keep +)
 
     # training loop

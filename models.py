@@ -51,7 +51,7 @@ class HorizonLSTMWithVariance(HorizonLSTM):
             nn.Linear(hidden_size, int(hidden_size / 2)),
             nn.ReLU(),
             nn.Linear(int(hidden_size / 2), output_size),
-            nn.ELU(),
+            nn.ReLU(),
         )
 
     def forward(self, x):
