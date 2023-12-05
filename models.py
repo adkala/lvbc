@@ -61,7 +61,8 @@ class HorizonLSTMWithVariance(HorizonLSTM):
         mean = self.outputl(x)
         var = self.outputl_var(x)
 
-        return mean, var
+        out = torch.cat([mean, var], dim=-1)
+        return out
 
     def generate(self, x, u):
         raise NotImplementedError

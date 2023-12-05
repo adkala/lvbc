@@ -1,8 +1,12 @@
 from run import make_config
+from torch import nn
 
 import argparse
 import models
 import torch
+import utils
+
+BATCH_SIZE = 256
 
 
 def run_training_loop(config, load_model):
@@ -55,6 +59,25 @@ def main():
 
     config["optimizer"] = torch.optim.Adam(
         config["model"].parameters(), lr=config["optimizer"].param_groups[0]["lr"]
+    )
+
+    # criterion
+    gnl = nn.GaussianNLLLoss()
+    criterion = lambda y_pred, y: gnl(
+        y_pred[:, :, : y.shape[-1]],
+        y,
+        nn.functional.relu(y_pred[:, :, y.shape[-1] :]),
+    )  # pred, target, var (relu to keep +)
+
+    # training loop
+    config["training_loop"] = lambda datasets: utils.cont_training_loop(
+        config["model"],
+        config["optimizer"],
+        criterion,
+        datasets,
+        config["device"],
+        batch_size=BATCH_SIZE,
+        comp_error=False,
     )
 
     run_training_loop(config, args.load_model)
