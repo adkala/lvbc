@@ -6,6 +6,7 @@ import models
 import torch
 import utils
 import os
+import numpy as np
 
 BATCH_SIZE = 256
 
@@ -37,6 +38,15 @@ def run_training_loop(config, load_model):
                 f'models/{config["name"]}/{config["name"]}_e{e}.p',
             )
         print(f"Epoch {e} loss: {loss} \n")
+
+        # check variance
+        i = np.random.randint(len(config['train_datasets']))
+        j = np.random.randint(len(config['train_datasets'][i]))
+        x, _ = config['train_datasets'][i][j]
+        y_pred = config['model'](torch.tensor(x).float())
+        print(y_pred.shape)
+        var = y_pred.detach().numpy()[:, 3:]
+        print(f'variance ({i}, {j}): {var.mean(axis=0)}')
 
 
 def main():
