@@ -18,6 +18,8 @@ def get_make_model_config(name):
 def get_make_dataset_config(name):
     if name == "contdataset":
         return make_contdataset_config
+    if name == 'contdataset_ws':
+        return make_contdataset_ws_config
     raise ValueError
 
 
@@ -136,6 +138,57 @@ def make_contdataset_config(
             train_datasets + validation_datasets
         )
 
+    return {
+        "train_datasets": train_datasets,
+        "validation_datasets": validation_datasets,
+        "window": window,
+        "horizon": horizon,
+        "delta_p": delta_p,
+        "normalize_p": normalize_p,
+        "standardize_u": standardize_u,
+    }
+
+def make_contdataset_ws_config(
+    train_path: str = "data",
+    validation_path: str = "data",
+    window: int = 1,
+    horizon: int = 100,
+    delta_p: bool = True,
+    normalize_p: bool = True,
+    standardize_u: bool = True,
+    **kwargs,
+):
+    def get_datasets(path):
+        files = [
+            os.path.join(path, f)
+            for f in os.listdir(path)
+            if os.path.isfile(os.path.join(path, f)) and f.endswith(".p")
+        ]
+        datasets = []
+        for fp in files:
+            with open(fp, "rb") as f:
+                ds = pickle.load(f)
+                ds['v'] = ds['w']
+                datasets.append(
+                    datasets_utils.ContDataset(
+                        ds, window=window, horizon=horizon, delta_p=delta_p
+                    )
+                )
+        datasets.sort(key=lambda x: x.name)
+        return datasets
+
+    train_datasets = get_datasets(train_path)
+    validation_datasets = get_datasets(validation_path)
+
+    if normalize_p:
+        datasets_utils.set_global_p_normalization_factors(
+            train_datasets + validation_datasets
+        )
+    if standardize_u:
+        datasets_utils.set_global_u_and_v_standardization_factors(
+            train_datasets + validation_datasets
+        )
+    
     return {
         "train_datasets": train_datasets,
         "validation_datasets": validation_datasets,
