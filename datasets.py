@@ -63,6 +63,7 @@ class ContDataset(BaseDataset):
             self.standardize_warning = False
         elif self.u_mean is not None: 
             u = (u - self.u_mean) / self.u_std
+            v = (v - self.v_mean) / self.v_std
 
         if self.p_min is None and self.normalize_warning:
             print('Normalization values for p are not set. Continuing with unnormalized values.')
@@ -80,7 +81,8 @@ class ContDataset(BaseDataset):
         if self.theta:
             r = np.expand_dims(R.from_matrix(r).as_euler("zyx")[:, 0], axis=-1)
 
-        return np.hstack([p_x, v, u, r]), p_y
+        #return np.hstack([p_x, v, u, r]), p_y
+        return np.hstack([p_x, u, r]), p_y
 
     def set_u_and_v_standardization_factors(self, u_mean, u_std, v_mean, v_std):
         self.u_mean, self.u_std, self.v_mean, self.v_std = u_mean, u_std, v_mean, v_std

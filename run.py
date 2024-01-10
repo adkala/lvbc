@@ -51,7 +51,12 @@ def run_training_loop(config, load_model=None):
         print(f'Starting epoch {e} / {config["epochs"]}')
         loss = config['training_loop'](config['train_datasets'])
         loss_history.append(loss)
+        
         if e % config['save_iter'] == 0:
+
+            # validate
+            utils.validate_data(config)
+            
             torch.save({
                 'name': config['name'],
                 'epoch': e,

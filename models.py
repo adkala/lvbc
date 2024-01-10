@@ -41,6 +41,7 @@ class HorizonLSTM(nn.Module):  # window and horizon treated same
             x, (c, h) = self.lstm(x, (c, h))
             x = self.outputl(x)
             y.append(x[-1])
+
         return torch.vstack(y)
 
 
