@@ -51,26 +51,33 @@ class HorizonLSTMWithVariance(HorizonLSTM):
             nn.Linear(hidden_size * num_layers, int(hidden_size / 2)),
             nn.ReLU(),
             nn.Linear(int(hidden_size / 2), output_size),
-            #nn.ReLU(),
+            # nn.ReLU(),
         )
 
     def forward(self, x):
         batched = True
         if len(x.shape) == 2:
-            x = x.unsqueeze(dim = 0)
+            x = x.unsqueeze(dim=0)
             batched = False
-            
+
         x = self.inputl(x)
-        x = x.transpose(0, 1) # transpose for timestep first
-        
+        x = x.transpose(0, 1)  # transpose for timestep first
+
         xa, ca = [], []
         c, h = None, None
         for i in range(x.shape[0]):
-            _x, (c, h) = self.lstm(x[0].unsqueeze(dim=0).transpose(0, 1), None if c is None else (c,h))
+            _x, (c, h) = self.lstm(
+                x[0].unsqueeze(dim=0).transpose(0, 1), None if c is None else (c, h)
+            )
             xa.append(_x)
-            ca.append(c.transpose(0, 1).reshape((c.shape[1], -1)).unsqueeze(dim=-1).transpose(-1, -2))
+            ca.append(
+                c.transpose(0, 1)
+                .reshape((c.shape[1], -1))
+                .unsqueeze(dim=-1)
+                .transpose(-1, -2)
+            )
         xa, ca = torch.cat(xa, dim=1), torch.cat(ca, dim=1)
-        
+
         x = self.outputl(xa)
         v = self.outputl_var(ca)
 
@@ -78,7 +85,7 @@ class HorizonLSTMWithVariance(HorizonLSTM):
         v = torch.abs(v)
 
         out = torch.cat([x, v], dim=-1)
-        
+
         return out if batched else out[0]
 
     def generate(self, x, u):

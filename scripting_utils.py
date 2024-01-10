@@ -18,7 +18,7 @@ def get_make_model_config(name):
 def get_make_dataset_config(name):
     if name == "contdataset":
         return make_contdataset_config
-    if name == 'contdataset_ws':
+    if name == "contdataset_ws":
         return make_contdataset_ws_config
     raise ValueError
 
@@ -134,7 +134,7 @@ def make_contdataset_config(
             train_datasets + validation_datasets
         )
     if standardize_u:
-        datasets_utils.set_global_u_and_v_standardization_factors(
+        datasets_utils.set_global_u_standardization_factors(
             train_datasets + validation_datasets
         )
 
@@ -147,6 +147,7 @@ def make_contdataset_config(
         "normalize_p": normalize_p,
         "standardize_u": standardize_u,
     }
+
 
 def make_contdataset_ws_config(
     train_path: str = "data",
@@ -168,7 +169,7 @@ def make_contdataset_ws_config(
         for fp in files:
             with open(fp, "rb") as f:
                 ds = pickle.load(f)
-                ds['v'] = ds['w']
+                ds["v"] = ds["w"]
                 datasets.append(
                     datasets_utils.ContDataset(
                         ds, window=window, horizon=horizon, delta_p=delta_p
@@ -185,10 +186,10 @@ def make_contdataset_ws_config(
             train_datasets + validation_datasets
         )
     if standardize_u:
-        datasets_utils.set_global_u_and_v_standardization_factors(
+        datasets_utils.set_global_u_standardization_factors(
             train_datasets + validation_datasets
         )
-    
+
     return {
         "train_datasets": train_datasets,
         "validation_datasets": validation_datasets,
